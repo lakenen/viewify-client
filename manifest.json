@@ -1,0 +1,24 @@
+{
+  "manifest_version": 2,
+  "name": "viewify",
+  "description": "Replace links to document files with links to view API documents.",
+  "version": "0.0.0",
+  "content_scripts": [ {
+    "js": ["viewify.js"],
+    "css": ["viewify.css"],
+    "matches": [
+      "http://*/*",
+      "https://*/*"
+    ],
+    "run_at": "document_idle",
+    "all_frames": true
+  } ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "permissions": [
+    "contextMenus"
+  ],
+  "icons": {
+  }
+}

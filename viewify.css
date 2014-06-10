@@ -1,0 +1,8 @@
+.viewify-converting {
+    -webkit-animation: pulse 1s infinite;
+}
+
+@-webkit-keyframes pulse {
+  0%   { opacity: 0.0; }
+  100%  { opacity: 0.5; }
+}

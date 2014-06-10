@@ -1,0 +1,19 @@
+{
+  "name": "viewify-client",
+  "version": "0.0.0",
+  "description": "Viewify browser extension client",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/lakenen/viewify-client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lakenen/viewify-client/issues"
+  },
+  "homepage": "https://github.com/lakenen/viewify-client",
+  "author": "Cameron Lakenen <lakenen@box.com>",
+  "license": "MIT"
+}
