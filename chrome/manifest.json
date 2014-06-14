@@ -14,11 +14,16 @@
     "all_frames": true
   } ],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["background.js"],
+    "persistent": false
   },
   "permissions": [
     "contextMenus"
   ],
   "icons": {
-  }
+  },
+  "web_accessible_resources": [
+    "overlay.html",
+    "close.png"
+  ]
 }
