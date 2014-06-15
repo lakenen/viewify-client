@@ -25,10 +25,12 @@ function ajax(method, url, data, callback) {
         if (status === 200) {
             callback.call(req, null, req.responseText);
         } else {
-            callback.call(req, req.responseText);
+            callback.call(req.responseText || req.statusCode || 'unknown error :(');
         }
     });
-    req.addEventListener('error', callback);
+    req.addEventListener('error', function () {
+        callback('error connecting to viewify server :(');
+    });
     req.setRequestHeader('Content-Type', 'application/json');
     req.send(data);
 }
@@ -56,7 +58,7 @@ function getTemplate(name, callback) {
 function getSession(url, cb) {
     json('POST', 'http://localhost:6789/doc', { url: url }, function (err, response) {
         if (err) {
-            cb(err);
+            cb(err, response);
             return;
         }
         if (response.session) {
@@ -69,31 +71,26 @@ function getSession(url, cb) {
     });
 }
 
+function getSessionURL(id) {
+    // return 'https://view-api.box.com/1/sessions/' + id + '/view?theme=dark';
+    return 'http://localhost:8000/1/sessions/' + id + '/view?theme=dark';
+}
+
 function viewifyLink(a) {
     var url = a.href;
     showOverlay(null, null, url);
-    if (a.classList.contains('viewify-error')) {
-        showOverlay('error...', null, url);
-        return;
-    }
     if (a.dataset.viewifySession) {
-        console.log(a.dataset.viewifySession)
-        showOverlay(null, 'https://view-api.box.com/1/sessions/' + a.dataset.viewifySession + '/view?theme=dark', url);
+        showOverlay(null, a.dataset.viewifySession, url);
         return;
     }
-    a.classList.add('viewify-converting');
     getSession(url, function (err, session) {
-        a.classList.remove('viewify-converting');
         if (err) {
-            a.classList.add('viewify-error');
             // show error dialog :(
-            console.log(err);
             showOverlay(err, null, url);
             return;
         }
-        a.dataset.viewifySession = session;
-        console.log(session)
-        showOverlay(null, 'https://view-api.box.com/1/sessions/' + session + '/view?theme=dark', url);
+        a.dataset.viewifySession = getSessionURL(session);
+        showOverlay(null, a.dataset.viewifySession, url);
     });
 }
 
@@ -109,14 +106,16 @@ function showOverlay(error, url, original) {
             overlay.classList.remove('viewify-overlay-loading');
             var iframe = $('.viewify-content', overlay);
             iframe.src = url;
-        } else if (error) {
-            overlay.classList.remove('viewify-overlay-loading');
-            overlay.classList.add('viewify-overlay-error');
-            $('.viewify-status', overlay).innerText = error;
         } else {
-            overlay.classList.remove('viewify-overlay-error');
-            overlay.classList.add('viewify-overlay-loading');
-            $('.viewify-status', overlay).innerHTML = 'viewifying document... (<a href="'+original+'">download original</a>)';
+            if (error) {
+                overlay.classList.remove('viewify-overlay-loading');
+                overlay.classList.add('viewify-overlay-error');
+            } else {
+                overlay.classList.remove('viewify-overlay-error');
+                overlay.classList.add('viewify-overlay-loading');
+                error = 'viewifying document... ';
+            }
+            $('.viewify-status', overlay).innerHTML = error + ' (<a href="'+original+'">download original</a>)';
             $('.viewify-status a', overlay).dataset.viewifyIgnore = true;
         }
     } else {

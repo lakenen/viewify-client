@@ -1,13 +1,3 @@
-.viewify-converting {
-    -webkit-animation: pulse 1s infinite;
-}
-
-@-webkit-keyframes pulse {
-  0%   { opacity: 0.0; }
-  100%  { opacity: 0.5; }
-}
-
-
 .viewify-overlay {
     z-index: 99999999;
     position: fixed;
@@ -74,9 +64,11 @@
     overflow:hidden;
 }
 
+.viewify-overlay-error .viewify-content,
 .viewify-overlay-loading .viewify-content {
     display: none;
 }
+.viewify-overlay-error .viewify-status,
 .viewify-overlay-loading .viewify-status {
     display: flex;
 }
