@@ -3,6 +3,6 @@ chrome.runtime.onMessage.addListener(function (message) {
     viewify.fixLink(clickedEl);
 });
 
-function getTemplateURL(name) {
+function getURL(name) {
     return chrome.extension.getURL(name);
 }

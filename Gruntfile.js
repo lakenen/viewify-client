@@ -12,7 +12,7 @@ module.exports = function (grunt) {
         concat: {
             chrome: {
                 src: [
-                    'src/viewify.js',
+                    'dist/chrome/viewify.js',
                     'dist/chrome/viewify-chrome.js'
                 ],
                 dest: 'dist/chrome/viewify.js'
@@ -28,7 +28,7 @@ module.exports = function (grunt) {
             chome: {
                 files: [
                     { expand: true, cwd: 'chrome/', src: ['*'], dest: 'dist/chrome', filter: 'isFile' },
-                    { expand: true, cwd: 'src/', src: ['*.css', '*.html'], dest: 'dist/chrome', filter: 'isFile' }
+                    { expand: true, cwd: 'src/', src: ['*'], dest: 'dist/chrome', filter: 'isFile' }
                 ]
             }
         },

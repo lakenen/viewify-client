@@ -14,8 +14,7 @@
     "all_frames": true
   } ],
   "background": {
-    "scripts": ["background.js"],
-    "persistent": false
+    "scripts": ["background.js"]
   },
   "permissions": [
     "contextMenus"
@@ -24,6 +23,7 @@
   },
   "web_accessible_resources": [
     "overlay.html",
+    "crocodiletears.gif",
     "close.png"
   ]
 }

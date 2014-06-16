@@ -1,13 +1,11 @@
+
+/*global getURL:false*/
+
 var $ = function (sel, el) { return (el || document).querySelector(sel); },
-    remove = function (el) { if (el && el.parentNode) el.parentNode.removeChild(el); },
     create = function (tag) { return document.createElement(tag); },
     templates = {};
 
-function findDocs() {
-    return [].filter.call(document.querySelectorAll('a[href]'), function (a) {
-        return /\.(pdf|doc|docx|ppt|pptx)(\?.*)?(#.*)?$/.test(a.href);
-    });
-}
+var ERR_CONNECTING = 'Error connecting to viewify server.';
 
 function tryToParseJSON(json) {
     try {
@@ -25,11 +23,11 @@ function ajax(method, url, data, callback) {
         if (status === 200) {
             callback.call(req, null, req.responseText);
         } else {
-            callback.call(req.responseText || req.statusCode || 'unknown error :(');
+            callback.call(req, req.responseText || req.statusCode || 'unknown error :(');
         }
     });
     req.addEventListener('error', function () {
-        callback('error connecting to viewify server :(');
+        callback(ERR_CONNECTING);
     });
     req.setRequestHeader('Content-Type', 'application/json');
     req.send(data);
@@ -42,11 +40,10 @@ function json(method, url, data, callback) {
 }
 
 function getTemplate(name, callback) {
-    /*global getTemplateURL:false*/
     if (templates[name]) {
         callback(null, templates[name]);
     } else {
-        ajax('GET', getTemplateURL(name), null, function (err, html) {
+        ajax('GET', getURL(name), null, function (err, html) {
             if (html) {
                 templates[name] = html;
             }
@@ -56,7 +53,7 @@ function getTemplate(name, callback) {
 }
 
 function getSession(url, cb) {
-    json('POST', 'http://localhost:6789/doc', { url: url }, function (err, response) {
+    json('POST', 'http://localhost:6789/docs', { url: url }, function (err, response) {
         if (err) {
             cb(err, response);
             return;
@@ -86,7 +83,7 @@ function viewifyLink(a) {
     getSession(url, function (err, session) {
         if (err) {
             // show error dialog :(
-            showOverlay(err, null, url);
+            showOverlay(err.error || err, null, url);
             return;
         }
         a.dataset.viewifySession = getSessionURL(session);
@@ -94,7 +91,36 @@ function viewifyLink(a) {
     });
 }
 
-function showOverlay(error, url, original) {
+function showStatus(overlay, error, originalURL) {
+    var statusEl = $('.viewify-status', overlay),
+        messageEl = $('.viewify-status-message', statusEl),
+        originalLink = $('.viewify-status-link a', statusEl);
+    if (error) {
+        messageEl.innerText = sanitize(error);
+        overlay.classList.remove('viewify-overlay-loading');
+        overlay.classList.add('viewify-overlay-error');
+    } else {
+        overlay.classList.remove('viewify-overlay-error');
+        overlay.classList.add('viewify-overlay-loading');
+        messageEl.innerText = 'Viewifying document... it\'ll be done in a jiffy!';
+    }
+    originalLink.href = originalURL;
+    originalLink.dataset.viewifyIgnore = true;
+}
+
+function sanitize(text) {
+    if (typeof text !== 'string') {
+        text = JSON.stringify(text);
+    }
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/'/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function showOverlay(error, url, originalURL) {
     var overlay = $('.viewify-overlay');
     if (overlay) {
         overlay.classList.remove('viewify-overlay-hidden');
@@ -107,16 +133,7 @@ function showOverlay(error, url, original) {
             var iframe = $('.viewify-content', overlay);
             iframe.src = url;
         } else {
-            if (error) {
-                overlay.classList.remove('viewify-overlay-loading');
-                overlay.classList.add('viewify-overlay-error');
-            } else {
-                overlay.classList.remove('viewify-overlay-error');
-                overlay.classList.add('viewify-overlay-loading');
-                error = 'viewifying document... ';
-            }
-            $('.viewify-status', overlay).innerHTML = error + ' (<a href="'+original+'">download original</a>)';
-            $('.viewify-status a', overlay).dataset.viewifyIgnore = true;
+            showStatus(overlay, error, originalURL);
         }
     } else {
         getTemplate('overlay.html', function (err, html) {
@@ -129,8 +146,9 @@ function showOverlay(error, url, original) {
                     hideOverlay();
                 }
             });
-            $('.viewify-close-btn', overlay).addEventListener('click', hideOverlay);
-            showOverlay(error, url, original);
+            var closeBtn = $('.viewify-close-btn', overlay);
+            closeBtn.addEventListener('click', hideOverlay);
+            showOverlay(error, url, originalURL);
         });
     }
 }
@@ -178,6 +196,6 @@ chrome.runtime.onMessage.addListener(function (message) {
     viewify.fixLink(clickedEl);
 });
 
-function getTemplateURL(name) {
+function getURL(name) {
     return chrome.extension.getURL(name);
 }
