@@ -41,13 +41,20 @@
     display: none;
     text-align: center;
     font-family: Helvetica, sans-serif;
-    font-size: 5vh;
+    font-size: 1.4em;
     align-items: center;
+    align-content: center;
     justify-content: center;
     background-position: center 10%;
     background-repeat: no-repeat;
-    background-size: auto 30%;
+    background-size: auto 25%;
     flex-wrap: wrap;
+}
+
+.viewify-status-message,
+.viewify-status-link {
+    width: 100%;
+    padding: 1em;
 }
 
 .viewify-overlay-error .viewify-status {
