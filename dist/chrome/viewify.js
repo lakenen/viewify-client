@@ -2,12 +2,19 @@
 /*global getURL:false*/
 
 var $ = function (sel, el) { return (el || document).querySelector(sel); },
+    addClass = function (el, cls) { el.classList.add(cls); },
+    removeClass = function (el, cls) { el.classList.remove(cls); },
+    hasClass = function (el, cls) { return el.classList.contains(cls); },
     create = function (tag) { return document.createElement(tag); },
     templates = {};
 
 var ERR_CONNECTING = 'Error connecting to viewify server.';
 var DOCS_URL = 'http://107.170.254.232/docs';
 // var DOCS_URL = 'http://localhost:6789/docs';
+
+var LOADING_CLASS = 'viewify-overlay-loading',
+    ERROR_CLASS = 'viewify-overlay-error',
+    HIDDEN_CLASS = 'viewify-overlay-hidden';
 
 function isTopWindow() {
     return window === window.top;
@@ -103,38 +110,26 @@ function showStatus(overlay, error, originalURL) {
         messageEl = $('.viewify-status-message', statusEl),
         originalLink = $('.viewify-status-link a', statusEl);
     if (error) {
-        messageEl.innerText = sanitize(error);
-        overlay.classList.remove('viewify-overlay-loading');
-        overlay.classList.add('viewify-overlay-error');
+        messageEl.innerText = error;
+        removeClass(overlay, LOADING_CLASS);
+        addClass(overlay, ERROR_CLASS);
     } else {
-        overlay.classList.remove('viewify-overlay-error');
-        overlay.classList.add('viewify-overlay-loading');
+        removeClass(overlay, ERROR_CLASS);
+        addClass(overlay, LOADING_CLASS);
         messageEl.innerText = 'Viewifying document... it\'ll be done in a jiffy!';
     }
     originalLink.href = originalURL;
     originalLink.dataset.viewifyIgnore = true;
 }
 
-function sanitize(text) {
-    if (typeof text !== 'string') {
-        text = JSON.stringify(text);
-    }
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/'/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
 function showOverlay() {
     var overlay = $('.viewify-overlay');
     if (overlay) {
         overlay.style.display = 'flex';
-        overlay.classList.remove('viewify-overlay-hidden');
-        if (!document.body.classList.contains('viewify-kill-scrolling')) {
+        removeClass(overlay, HIDDEN_CLASS);
+        if (!hasClass(document.body, 'viewify-kill-scrolling')) {
             document.body.dataset.top = document.body.scrollTop;
-            document.body.classList.add('viewify-kill-scrolling');
+            addClass(document.body, 'viewify-kill-scrolling');
         }
     } else {
         loadOverlay(showOverlay);
@@ -143,9 +138,9 @@ function showOverlay() {
 
 function updateOverlay(error, url, originalURL) {
     var overlay = $('.viewify-overlay');
-    if (overlay && !overlay.classList.contains('viewify-overlay-hidden')) {
+    if (overlay && !hasClass(overlay, HIDDEN_CLASS)) {
         if (url) {
-            overlay.classList.remove('viewify-overlay-loading');
+            removeClass(overlay, LOADING_CLASS);
             var iframe = $('.viewify-content', overlay);
             iframe.src = url;
         } else {
@@ -157,20 +152,20 @@ function updateOverlay(error, url, originalURL) {
 function hideOverlay() {
     var overlay = $('.viewify-overlay');
     if (overlay) {
-        overlay.classList.add('viewify-overlay-hidden');
+        addClass(overlay, HIDDEN_CLASS);
         $('.viewify-content', overlay).src = 'about:blank';
         overlay.addEventListener('webkitTransitionEnd', function () {
             overlay.style.display = 'none';
         });
     }
-    document.body.classList.remove('viewify-kill-scrolling');
+    removeClass(document.body, 'viewify-kill-scrolling');
     document.body.scrollTop = document.body.dataset.top;
 }
 
 function loadOverlay(done) {
     getTemplate('overlay.html', function (err, html) {
         var overlayEl = create('div');
-        overlayEl.classList.add('viewify-overlay', 'viewify-overlay-hidden');
+        addClass(overlayEl, 'viewify-overlay', HIDDEN_CLASS);
         overlayEl.style.display = 'none';
         overlayEl.innerHTML = html;
         document.body.appendChild(overlayEl);
@@ -224,6 +219,21 @@ if (isTopWindow()) {
             }
         }
     });
+
+    window.addEventListener('message', function (event) {
+        if (event.origin === 'https://view-api.box.com') {
+            if (event.data === 'close') {
+                hideOverlay();
+            }
+        }
+    }, false);
+
+} else {
+    document.addEventListener('keydown', function(event){
+        if (event.keyCode === 27) { //esc
+            window.parent.postMessage('close', '*');
+        }
+    }, true);
 }
 
 
