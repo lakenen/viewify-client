@@ -6,6 +6,8 @@ var $ = function (sel, el) { return (el || document).querySelector(sel); },
     templates = {};
 
 var ERR_CONNECTING = 'Error connecting to viewify server.';
+var DOCS_URL = 'http://107.170.254.232/docs';
+// var DOCS_URL = 'http://localhost:6789/docs';
 
 function isTopWindow() {
     return window === window.top;
@@ -35,10 +37,11 @@ function ajax(method, url, data, callback) {
     });
     req.setRequestHeader('Content-Type', 'application/json');
     req.send(data);
+    return req;
 }
 
 function json(method, url, data, callback) {
-    ajax(method, url, JSON.stringify(data), function (err, responseText) {
+    return ajax(method, url, JSON.stringify(data), function (err, responseText) {
         callback.call(this, tryToParseJSON(err), tryToParseJSON(responseText));
     });
 }
@@ -57,7 +60,7 @@ function getTemplate(name, callback) {
 }
 
 function getSession(url, cb) {
-    json('POST', 'http://localhost:6789/docs', { url: url }, function (err, response) {
+    return json('POST', DOCS_URL, { url: url }, function (err, response) {
         if (err) {
             cb(err, response);
             return;
@@ -72,11 +75,7 @@ function getSession(url, cb) {
     });
 }
 
-function getSessionURL(id) {
-    // return 'https://view-api.box.com/1/sessions/' + id + '/view?theme=dark';
-    return 'http://localhost:8000/1/sessions/' + id + '/view?theme=dark';
-}
-
+var currentRequest;
 function viewifyLink(a) {
     var url = a.href;
     showOverlay();
@@ -85,13 +84,16 @@ function viewifyLink(a) {
         updateOverlay(null, a.dataset.viewifySession, url);
         return;
     }
-    getSession(url, function (err, session) {
+    if (currentRequest) {
+        currentRequest.abort();
+    }
+    currentRequest = getSession(url, function (err, session) {
         if (err) {
             // show error dialog :(
             updateOverlay(err.error || err, null, url);
             return;
         }
-        a.dataset.viewifySession = getSessionURL(session);
+        a.dataset.viewifySession = session + '?theme=dark';
         updateOverlay(null, a.dataset.viewifySession, url);
     });
 }
