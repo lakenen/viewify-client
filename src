@@ -1,15 +1,8 @@
 
-/*global getURL:false*/
-
-var $ = function (sel, el) { return (el || document).querySelector(sel); },
-    addClass = function (el, cls) { el.classList.add(cls); },
-    removeClass = function (el, cls) { el.classList.remove(cls); },
-    hasClass = function (el, cls) { return el.classList.contains(cls); },
-    create = function (tag) { return document.createElement(tag); },
-    templates = {};
+/*global templates:true, getURL:false*/
 
 var ERR_CONNECTING = 'Error connecting to viewify server.';
-var DOCS_URL = 'http://107.170.254.232/docs';
+var DOCS_URL = 'http://viewify.me/docs';
 // var DOCS_URL = 'http://localhost:6789/docs';
 
 var LOADING_CLASS = 'viewify-overlay-loading',
@@ -54,11 +47,12 @@ function json(method, url, data, callback) {
 }
 
 function getTemplate(name, callback) {
-    if (templates[name]) {
+    if (templates && templates[name]) {
         callback(null, templates[name]);
     } else {
         ajax('GET', getURL(name), null, function (err, html) {
             if (html) {
+                templates = templates || {};
                 templates[name] = html;
             }
             callback(err, html);
@@ -110,13 +104,15 @@ function showStatus(overlay, error, originalURL) {
         messageEl = $('.viewify-status-message', statusEl),
         originalLink = $('.viewify-status-link a', statusEl);
     if (error) {
+        console.error(error);
+        error = 'Oops! Looks like there was an issue converting this document.';
         messageEl.innerText = error;
         removeClass(overlay, LOADING_CLASS);
         addClass(overlay, ERROR_CLASS);
     } else {
         removeClass(overlay, ERROR_CLASS);
         addClass(overlay, LOADING_CLASS);
-        messageEl.innerText = 'Viewifying document... it\'ll be done in a jiffy!';
+        messageEl.innerText = 'Generating preview. Hold tight... it\'ll be done in a jiffy!';
     }
     originalLink.href = originalURL;
     originalLink.dataset.viewifyIgnore = true;

@@ -2,7 +2,7 @@
   "name": "viewify-client",
   "version": "0.0.0",
   "description": "Viewify browser extension client",
-  "main": "index.js",
+  "main": "dist/main/viewify.full.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,12 +15,20 @@
   },
   "homepage": "https://github.com/lakenen/viewify-client",
   "author": "Cameron Lakenen <lakenen@box.com>",
-  "license": "MIT",
+  "license": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/lakenen/viewify-client/blob/master/LICENSE"
+    }
+  ],
   "devDependencies": {
     "grunt": "^0.4.5",
     "grunt-contrib-concat": "^0.4.0",
     "grunt-contrib-jshint": "^0.10.0",
     "grunt-contrib-copy": "^0.5.0",
-    "grunt-contrib-watch": "^0.6.1"
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-contrib-clean": "^0.5.0",
+    "grunt-contrib-htmlmin": "^0.3.0",
+    "grunt-contrib-cssmin": "^0.10.0"
   }
 }

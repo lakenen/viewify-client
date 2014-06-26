@@ -1,15 +1,7 @@
-
-/*global getURL:false*/
-
-var $ = function (sel, el) { return (el || document).querySelector(sel); },
-    addClass = function (el, cls) { el.classList.add(cls); },
-    removeClass = function (el, cls) { el.classList.remove(cls); },
-    hasClass = function (el, cls) { return el.classList.contains(cls); },
-    create = function (tag) { return document.createElement(tag); },
-    templates = {};
+/*global templates:true, $,addClass,removeClass,hasClass,create,replace*/
 
 var ERR_CONNECTING = 'Error connecting to viewify server.';
-var DOCS_URL = 'http://107.170.254.232/docs';
+var DOCS_URL = 'http://viewify.me/docs';
 // var DOCS_URL = 'http://localhost:6789/docs';
 
 var LOADING_CLASS = 'viewify-overlay-loading',
@@ -53,17 +45,11 @@ function json(method, url, data, callback) {
     });
 }
 
-function getTemplate(name, callback) {
-    if (templates[name]) {
-        callback(null, templates[name]);
-    } else {
-        ajax('GET', getURL(name), null, function (err, html) {
-            if (html) {
-                templates[name] = html;
-            }
-            callback(err, html);
-        });
+function getTemplate(name) {
+    if (templates && templates[name]) {
+        return templates[name];
     }
+    return '';
 }
 
 function getSession(url, cb) {
@@ -134,7 +120,8 @@ function showOverlay() {
             addClass(document.body, 'viewify-kill-scrolling');
         }
     } else {
-        loadOverlay(showOverlay);
+        initOverlay();
+        showOverlay();
     }
 }
 
@@ -164,24 +151,34 @@ function hideOverlay() {
     document.body.scrollTop = document.body.dataset.top;
 }
 
-function loadOverlay(done) {
-    getTemplate('overlay.html', function (err, html) {
-        var overlayEl = create('div');
-        addClass(overlayEl, 'viewify-overlay', HIDDEN_CLASS);
-        overlayEl.style.display = 'none';
-        overlayEl.innerHTML = html;
-        document.body.appendChild(overlayEl);
-        overlayEl.addEventListener('click', function (event) {
-            if (event.target === overlayEl) {
-                hideOverlay();
-            }
-        });
-        var closeBtn = $('.viewify-close-btn', overlayEl);
-        closeBtn.addEventListener('click', hideOverlay);
-        if (typeof done === 'function') {
-            done();
+function loadStyles() {
+    var css = getTemplate('styles.css');
+    var styleEl = document.createElement('style'),
+        cssTextNode = document.createTextNode(css);
+    try {
+        styleEl.setAttribute('type', 'text/css');
+        styleEl.appendChild(cssTextNode);
+    } catch (err) {
+        // uhhh IE < 9
+    }
+    document.getElementsByTagName('head')[0].appendChild(styleEl);
+}
+
+function initOverlay() {
+    loadStyles();
+    var html = getTemplate('overlay.html');
+    var overlayEl = create('div');
+    addClass(overlayEl, 'viewify-overlay', HIDDEN_CLASS);
+    overlayEl.style.display = 'none';
+    overlayEl.innerHTML = html;
+    document.body.appendChild(overlayEl);
+    overlayEl.addEventListener('click', function (event) {
+        if (event.target === overlayEl) {
+            hideOverlay();
         }
     });
+    var closeBtn = $('.viewify-close-btn', overlayEl);
+    closeBtn.addEventListener('click', hideOverlay);
 }
 
 var clickedEl = null;
@@ -190,15 +187,36 @@ window.viewify = {
     fixLink: viewifyLink
 };
 
-if (isTopWindow()) {
-    // for now, don't do anything if it's not the top window...
-    // solving this issue will require some security considerations
+function isDocumentURL(url) {
+    return /\.(pdf|doc|docx|ppt|pptx)(\?.*)?(#.*)?$/.test(url);
+}
 
-    if (document.readyState !== 'complete') {
-        document.onload = loadOverlay;
-    } else {
-        loadOverlay();
-    }
+function fixLink(a) {
+    var clone = a.cloneNode(true);
+    clone.removeAttribute('onclick');
+    clone.removeAttribute('onmousedown');
+    clone.removeAttribute('onmouseup');
+    replace(a, clone);
+    clone.addEventListener('click', function (event) {
+        var a = this;
+        if (!a.dataset.viewifyIgnore && isDocumentURL(a.href)) {
+            viewifyLink(a);
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    });
+}
+
+function fixLinks() {
+    forEach(document.querySelectorAll('a[href]:not([data-viewify-seen]'), function (a) {
+        a.setAttribute('data-viewify-seen', 1);
+        if (isDocumentURL(a.href)) {
+            fixLink(a);
+        }
+    });
+}
+
+if (isTopWindow()) {
 
     document.addEventListener('mousedown', function(event){
         clickedEl = event.target;
@@ -211,24 +229,28 @@ if (isTopWindow()) {
         }
     }, true);
 
-    document.addEventListener('click', function (event) {
-        if (event.target.tagName === 'A') {
-            var a = event.target;
-            if (!a.dataset.viewifyIgnore && /\.(pdf|doc|docx|ppt|pptx)(\?.*)?(#.*)?$/.test(a.href)) {
-                viewifyLink(a);
-                event.preventDefault();
-                event.stopPropagation();
-            }
-        }
-    });
+    fixLinks();
 
-    window.addEventListener('message', function (event) {
-        if (event.origin === 'https://view-api.box.com') {
-            if (event.data === 'close') {
-                hideOverlay();
-            }
-        }
-    }, false);
+    setInterval(fixLinks, 500);
+
+    // document.addEventListener('click', function (event) {
+    //     if (event.target.tagName === 'A') {
+    //         var a = event.target;
+    //         if (!a.dataset.viewifyIgnore && isDocumentURL(a.href)) {
+    //             viewifyLink(a);
+    //             event.preventDefault();
+    //             event.stopPropagation();
+    //         }
+    //     }
+    // });
+
+    // window.addEventListener('message', function (event) {
+    //     if (event.origin === 'https://view-api.box.com') {
+    //         if (event.data === 'close') {
+    //             hideOverlay();
+    //         }
+    //     }
+    // }, false);
 
 } else {
     document.addEventListener('keydown', function(event){
@@ -236,13 +258,4 @@ if (isTopWindow()) {
             window.parent.postMessage('close', '*');
         }
     }, true);
-}
-
-
-chrome.runtime.onMessage.addListener(function (message) {
-    viewify.fixLink(clickedEl);
-});
-
-function getURL(name) {
-    return chrome.extension.getURL(name);
 }
