@@ -1,6 +1,6 @@
 # Viewify
 
-
+** NO LONGER BEING DEVELOPED -- see [viewify](https://github.com/lakenen/viewify) **
 
 ## License ##
 
